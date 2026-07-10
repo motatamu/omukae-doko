@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>おむかえバス｜空港バスの降車場さがし</title>
+<style>
+  :root{
+    --bg:#0e7c7b;
+    --bg2:#14a3a0;
+    --accent:#ff7a45;
+    --accent-d:#e8622c;
+    --ink:#0c2b2b;
+    --card:#ffffff;
+    --line:#dbe7e7;
+    --muted:#5c7574;
+    --soft:#eef6f5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    color:var(--ink);background:var(--soft);
+    padding:0 0 40px;
+  }
+  header{
+    background:linear-gradient(135deg,var(--bg),var(--bg2));
+    color:#fff;padding:26px 20px 30px;text-align:center;
+    border-radius:0 0 26px 26px;box-shadow:0 6px 18px rgba(14,124,123,.28);
+  }
+  header .logo{font-size:34px;line-height:1;}
+  header h1{margin:8px 0 4px;font-size:22px;letter-spacing:.02em;}
+  header p{margin:0;font-size:13px;opacity:.9;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px;}
+  .steps{margin-top:-16px;}
+  .card{
+    background:var(--card);border-radius:18px;padding:18px 18px 20px;
+    box-shadow:0 3px 14px rgba(12,43,43,.08);border:1px solid var(--line);
+    margin-bottom:16px;
+  }
+  .step-label{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;margin-bottom:12px;}
+  .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
+    font-size:14px;flex:0 0 auto;
+  }
+  select{
+    width:100%;font-size:17px;padding:14px 14px;border-radius:12px;
+    border:1.5px solid var(--line);background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230e7c7b' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 14px center;
+    -webkit-appearance:none;appearance:none;color:var(--ink);
+  }
+  select:disabled{opacity:.5;background-color:#f3f3f3;}
+  select:focus{outline:none;border-color:var(--bg2);}
+  .result{display:none;}
+  .result.show{display:block;animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .route-line{
+    display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap;
+  }
+  .chip{background:var(--soft);border-radius:999px;padding:5px 12px;font-weight:600;color:var(--bg);}
+  .arrow{color:var(--accent);font-weight:700;}
+  .spot-label{font-size:13px;color:var(--muted);margin-bottom:4px;}
+  .spot{font-size:26px;font-weight:800;line-height:1.25;margin-bottom:10px;color:var(--ink);}
+  .note{font-size:14px;line-height:1.6;background:var(--soft);border-radius:12px;padding:12px 14px;color:#37524f;}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px;}
+  .badge{font-size:12px;padding:5px 11px;border-radius:999px;background:#e6f3f2;color:var(--bg);font-weight:700;}
+  .badge.warn{background:#ffe9df;color:var(--accent-d);}
+  .mapbtn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-top:16px;width:100%;padding:15px;border-radius:13px;border:none;
+    background:var(--accent);color:#fff;font-size:16px;font-weight:700;text-decoration:none;
+    box-shadow:0 4px 12px rgba(255,122,69,.4);cursor:pointer;
+  }
+  .mapbtn:active{transform:translateY(1px);}
+  .mapbtn.info{background:var(--bg);box-shadow:0 4px 12px rgba(14,124,123,.35);margin-top:10px;}
+  .mapframe{margin-top:14px;border-radius:13px;overflow:hidden;border:1px solid var(--line);line-height:0;}
+  .mapframe iframe{width:100%;height:220px;border:0;}
+  .placeholder{
+    text-align:center;color:var(--muted);font-size:14px;padding:26px 10px;line-height:1.7;
+  }
+  .placeholder .big{font-size:40px;display:block;margin-bottom:6px;}
+  footer{max-width:560px;margin:8px auto 0;padding:0 22px;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  footer a{color:var(--bg);}
+  .disclaimer{margin-top:10px;}
+  .version{
+    display:inline-block;margin-bottom:10px;padding:5px 12px;border-radius:999px;
+    background:var(--bg);color:#fff;font-weight:700;font-size:12px;letter-spacing:.02em;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🛬🚌</div>
+  <h1>おむかえバス</h1>
+  <p>空港バスに乗った人を、どこで迎える？</p>
+</header>
+
+<div class="wrap steps">
+  <div class="card">
+    <div class="step-label"><span class="num">1</span>どの空港に着いた？</div>
+    <select id="airport">
+      <option value="">― 空港を選ぶ ―</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="step-label"><span class="num">2</span>バスでどこへ行く？</div>
+    <select id="dest" disabled>
+      <option value="">― まず空港を選んでください ―</option>
+    </select>
+  </div>
+
+  <div class="card result" id="resultCard">
+    <div class="route-line" id="routeLine"></div>
+    <div class="spot-label">🚏 お迎えに行く降車場</div>
+    <div class="spot" id="spotName"></div>
+    <div class="meta" id="metaRow"></div>
+    <div class="note" id="noteBox"></div>
+    <a class="mapbtn" id="mapBtn" href="#" target="_blank" rel="noopener">📍 地図（Googleマップ）で開く</a>
+    <a class="mapbtn info" id="infoBtn" href="#" target="_blank" rel="noopener" style="display:none"></a>
+    <div class="mapframe" id="mapFrame"></div>
+  </div>
+
+  <div class="card placeholder" id="placeholder">
+    <span class="big">🗺️</span>
+    空港と行き先を選ぶと、<br>お迎えに行くバスの降車場を表示します。
+  </div>
+</div>
+
+<footer>
+  <div class="version">バージョン v3.5 ／ 最終更新 2026-07-09（羽田第5バッチ＝京急系・東京南部 T24〜T37 の19停留所を追加。うち7か所確定（大森・町田BC・品川シーサイド・武蔵小山・田園調布本町・立川駅北口・二子玉川ライズ）、12か所は検収待ち。新グループ「東京（城南・大田）」「東京（城東・城北）」を追加）</div>
+  <div>路線・時刻の出典：各空港・各バス会社の公式サイト（中部国際空港セントレア、県営名古屋空港、羽田空港アクセスガイド／名鉄バス、知多バス、あおい交通、遠鉄バスe-wing、三重交通、名古屋バス、VIPライナー、東京空港交通、京急バス）2026年ダイヤ。地図の座標はGoogleマップ上の各バス停ピンの実位置を採用（常滑のみ専用バス停が未登録のため常滑駅を採用）。</div>
+  <div class="disclaimer">※降車場やダイヤは変更・運休される場合があります。お迎え前に必ず各バス会社の最新情報をご確認ください。プロトタイプ版。</div>
+</footer>
+
+<script>
+// query: "lat,lng" でも 地名でもOK
+const DATA = {
+  centrair: {
+    name: "中部国際空港（セントレア）",
+    dests: [
+      // 名古屋・尾張
+      {g:"名古屋・尾張", name:"栄（さかえ）", spot:"栄 降車専用のりば（NE2b・錦通沿い）", op:"名鉄バス（セントレアリムジン）", q:"35.169972,136.910222",
+        note:"名古屋の中心・栄。セントレアから来た便は「NE2b 栄（降車専用）」で降車。錦通沿い（オアシス21の南西あたり）。地下鉄栄駅からすぐ。"},
+      {g:"名古屋・尾張", name:"伏見（ふしみ）", spot:"名古屋観光ホテル前（降車）", op:"名鉄バス（セントレアリムジン）", q:"35.169166,136.895619",
+        note:"セントレアリムジンの終点。錦通沿いの名古屋観光ホテル前で降車。地下鉄伏見駅の東すぐ。"},
+      {g:"名古屋・尾張", name:"藤が丘（ふじがおか）", spot:"藤が丘 6番のりば", op:"名鉄バス", q:"35.182606,137.021969",
+        note:"地下鉄・リニモ藤が丘駅すぐの、藤が丘6番のりばで乗降。"},
+      {g:"名古屋・尾張", name:"愛・地球博記念公園（ジブリパーク）", spot:"愛・地球博記念公園（リニモ駅前）", op:"名鉄バス", q:"35.177783,137.089362",
+        note:"ジブリパーク開園日のみ運行・降車可。リニモ愛・地球博記念公園駅前。休園日は運行なし。"},
+      {g:"名古屋・尾張", name:"名古屋駅（名鉄バスセンター）", spot:"名鉄バスセンター（名鉄百貨店3階）", op:"名鉄バス", q:"35.168581,136.884166", susp:true,
+        note:"現在この路線は全便運休中。再開時は名鉄名古屋駅直上の名鉄バスセンターが降車場。"},
+      {g:"名古屋・尾張", name:"名古屋駅西口（深夜早朝便）", spot:"名古屋駅 西口（太閤通口）", op:"名古屋バス", q:"35.170693,136.879690",
+        note:"深夜・早朝便のみ運行。名古屋駅の新幹線側＝西の太閤通口ロータリー。"},
+      {g:"名古屋・尾張", name:"金城ふ頭（レゴランド・リニア鉄道館方面）", spot:"金城ふ頭駅前", op:"三重交通", q:"35.048530,136.849500", susp:true,
+        note:"現在この路線は全便運休中。再開時はあおなみ線 金城ふ頭駅前が降車場。"},
+      // 三河
+      {g:"愛知（三河）", name:"豊田市", spot:"豊田市（名鉄トヨタホテル前）", op:"名鉄バス", q:"35.087641,137.156677",
+        note:"豊田市駅東口すぐの名鉄トヨタホテル前で降車。"},
+      {g:"愛知（三河）", name:"東名豊川", spot:"東名豊川バスストップ", op:"遠鉄バス e-wing", q:"34.8366298,137.4102249",
+        note:"東名高速の東名豊川バス停（豊川IC北東側）。駅ではないので車での送迎向き。"},
+      {g:"愛知（三河）", name:"緒川駅前（おがわ）", spot:"緒川駅前", op:"知多バス", q:"34.981491,136.971976",
+        note:"刈谷・中部空港線。空港発は1日1本（夕方）。JR緒川駅前。"},
+      {g:"愛知（三河）", name:"刈谷（かりや）", spot:"刈谷駅 北口", op:"知多バス", q:"34.991311,137.009876",
+        note:"刈谷・中部空港線。刈谷駅は北口ロータリーで降車。空港発は1日1本（夕方）。途中の刈谷市駅口・東陽町にも停車。"},
+      {g:"愛知（三河）", name:"知立（ちりゅう）", spot:"知立駅 4番のりば", op:"知多バス", q:"35.006186,137.040746",
+        note:"刈谷・中部空港線の終点。空港発は1日1本（夕方）。名鉄知立駅前ロータリーの④番のりばで降車。"},
+      // 知多半島
+      {g:"知多半島", name:"知多半田駅", spot:"知多半田駅 2番のりば", op:"知多バス", q:"34.893838,136.926651",
+        note:"半田・常滑方面の路線バス。名鉄知多半田駅の2番のりば。"},
+      {g:"知多半島", name:"常滑（とこなめ）", spot:"常滑駅前", op:"知多バス", q:"34.889205,136.835531",
+        note:"空港から約10分。名鉄常滑駅前。"},
+      {g:"知多半島", name:"板山（いたやま）", spot:"板山バス停（半田市）", op:"知多バス", q:"34.890447,136.887363",
+        note:"半田市の板山バス停。路線バス。"},
+      // 静岡
+      {g:"静岡", name:"浜松駅", spot:"浜松駅バスターミナル11番のりば", op:"遠鉄バス e-wing", q:"34.70501,137.734",
+        note:"JR浜松駅北口のロータリー型バスターミナル。11番のりば発着（e-wing公式）。"},
+      {g:"静岡", name:"浜松西インター", spot:"浜松西インターチェンジ", op:"遠鉄バス e-wing", q:"34.764136,137.681334",
+        note:"東名 浜松西IC付近のバス停。駅ではないので車での送迎向き。"},
+      {g:"静岡", name:"磐田インター", spot:"磐田インターチェンジ", op:"遠鉄バス e-wing", q:"34.745301,137.857434",
+        note:"東名 磐田IC付近のバス停。車での送迎向き。"},
+      {g:"静岡", name:"掛川インター", spot:"掛川インターチェンジ", op:"遠鉄バス e-wing", q:"34.760428,138.041558",
+        note:"東名 掛川IC付近のバス停。車での送迎向き。"},
+      // 三重
+      {g:"三重", name:"近鉄四日市", spot:"近鉄四日市駅前", op:"三重交通", q:"34.966753,136.618181", susp:true,
+        note:"現在この路線は全便運休中。再開時は近鉄四日市駅前が降車場。"},
+      {g:"三重", name:"桑名駅前", spot:"桑名駅前", op:"三重交通", q:"35.065922,136.684200", susp:true,
+        note:"現在この路線は全便運休中。"},
+      {g:"三重", name:"長島温泉", spot:"長島温泉（ナガシマリゾート）", op:"三重交通", q:"35.02745,136.7268", susp:true,
+        note:"現在この路線は全便運休中。"},
+      // 富山・金沢（夜行）
+      {g:"富山・金沢（夜行）", name:"富山駅", spot:"富山駅北口 バスのりば2番", op:"VIPライナー", q:"36.702267,137.214330",
+        note:"夜行便。降車は南口でなく北口ロータリー内バスのりば2番（VIPライナー公式）。運賃は公式サイトで確認。"},
+      {g:"富山・金沢（夜行）", name:"金沢駅", spot:"金沢駅西口ロータリー2番のりば", op:"VIPライナー", q:"36.578437,136.646106",
+        note:"夜行便。金沢駅西口ロータリー内2番のりば（VIPライナー公式）。運賃は公式サイトで確認。"}
+    ]
+  },
+  haneda: {
+    name: "羽田空港（東京国際空港）",
+    dests: [
+      // 東京
+      {g:"東京", name:"東京駅", spot:"東京駅八重洲北口（鉄鋼ビル前）", op:"東京空港交通・京急バス", q:"35.68226,139.769872",
+        link:"https://www.limousinebus.co.jp/ja/busstop/detail/TokyoStationYaesuNorthGate/", linkLabel:"東京駅八重洲北口 のりば・おりば案内（公式）",
+        note:"八重洲北口・外堀通り沿いの鉄鋼ビル前おりば（ビル1階に待合スペースあり）。丸の内側ではないので注意。詳しい位置は下の公式のりば案内で。"},
+      {g:"東京", name:"バスタ新宿（新宿駅南口）", spot:"バスタ新宿 3階降車場", op:"東京空港交通", q:"35.68884,139.701033",
+        link:"https://shinjuku-busterminal.co.jp/floormap/3f.html", linkLabel:"バスタ新宿 3階おりばフロアマップ（公式）",
+        note:"新宿駅南口直上の高速バスターミナル（完全屋内）。空港からの便は3階降車場に到着。お迎えは3階降車場前か南口改札前が合流しやすい。下の公式フロアマップで位置を確認して。"},
+      {g:"東京", name:"新宿駅西口", spot:"新宿駅西口（京王百貨店前）おりば", op:"東京空港交通", q:"35.6897453,139.6986364",
+        note:"京王百貨店前の空港連絡バスおりば。"},
+      {g:"東京", name:"渋谷駅（渋谷フクラス）", spot:"渋谷駅西口 渋谷フクラス1階", op:"東京空港交通・京急バス・東急バス", q:"35.657642,139.700502",
+        note:"渋谷駅西口の渋谷フクラス（東急プラザ渋谷）1階バスのりば。"},
+      {g:"東京", name:"渋谷マークシティ", spot:"渋谷マークシティ 5階バス乗り場（エクセルホテル東急）", op:"東京空港交通", q:"35.65844394,139.6988038",
+        link:"https://www.s-markcity.co.jp/floorguide/", linkLabel:"マークシティ フロアガイド（公式・5Fを選択）",
+        note:"マークシティ5階（屋上部）のバス乗り場で降車。地上からは見えない場所なので、下の公式フロアガイドで「5F」を選んで位置を確認して。"},
+      {g:"東京", name:"池袋駅西口", spot:"池袋駅西口おりば", op:"東京空港交通・国際興業バス", q:"35.731186,139.709152",
+        note:"池袋駅西口のリムジンバス降車専用おりば。"},
+      {g:"東京", name:"池袋駅東口", spot:"池袋駅東口おりば（降車専用）", op:"東京空港交通", q:"35.728984,139.712011",
+        note:"池袋駅東口の降車専用ポール（都営バスの標柱と共用）。西口おりばとは別の場所なので注意。"},
+      {g:"東京", name:"東京シティエアターミナル（T-CAT）", spot:"T-CAT 1階「リムジンバスおりば」", op:"東京空港交通", q:"35.682176,139.787738",
+        link:"https://www.tcat-hakozaki.co.jp/floorguide/floor-1.html", linkLabel:"T-CAT 1階フロアマップ（公式）",
+        note:"地下鉄半蔵門線水天宮前駅直結のビル。バスは1階の「リムジンバスおりば」（出発到着ロビー横・北東側）に到着。建物内なので下の公式フロアマップで位置を確認して。"},
+      {g:"東京", name:"中野駅", spot:"中野駅（北側）おりば", op:"東京空港交通", q:"35.70715377,139.6650957",
+        note:"中野駅北側の空港連絡バスおりば（公式おりば地図の位置）。"},
+      {g:"東京", name:"吉祥寺駅", spot:"吉祥寺駅（中央口前）", op:"東京空港交通・京急バス・小田急バス・関東バス", q:"35.70305655,139.5808585",
+        note:"吉祥寺駅中央口前の空港連絡バスのりば・おりば。"},
+      {g:"東京", name:"豊洲駅", spot:"豊洲駅リムジンバス乗り場", op:"東京空港交通", q:"35.655297,139.795074",
+        note:"地下鉄有楽町線・ゆりかもめ豊洲駅前。"},
+      {g:"東京", name:"ミチノテラス豊洲（ラビスタ東京ベイ）", spot:"ミチノテラス豊洲 バスのりば", op:"京成バス千葉イースト・東京空港交通", q:"35.646589,139.784333",
+        note:"豊洲市場そばの複合施設。ホテル「ラビスタ東京ベイ」前ののりばで降車。"},
+      {g:"東京", name:"東急歌舞伎町タワー", spot:"東急歌舞伎町タワー バスターミナル", op:"東京空港交通・東急バス", q:"35.69593,139.70068",
+        link:"https://www.tokyu-kabukicho-tower.jp/floorguide/", linkLabel:"東急歌舞伎町タワー フロアガイド（公式・1Fの「バス乗降所」）",
+        note:"タワー1階・建物北側（西武新宿駅前通りの奥）のバス乗降所に到着。下の公式フロアガイド1Fマップで「バス乗降所」の位置を確認して。"},
+      {g:"東京", name:"練馬駅（練馬区役所前）", spot:"練馬駅（練馬区役所前）おりば", op:"東京空港交通", q:"35.7359088,139.6521590",
+        note:"西武池袋線・大江戸線練馬駅の南、練馬区役所前の空港連絡バスおりば。"},
+      {g:"東京", name:"光が丘駅", spot:"光が丘駅（羽田空港線バス停）", op:"東京空港交通", q:"35.7588781,139.6301894",
+        note:"大江戸線光が丘駅前の羽田空港線バス停。"},
+      {g:"東京", name:"葛西駅", spot:"葛西駅前（空港バスおりば）", op:"東京空港交通・京成バス", q:"35.6644626,139.8729825",
+        note:"地下鉄東西線葛西駅前ロータリーの空港連絡バスおりば。"},
+      {g:"東京", name:"一之江駅", spot:"一之江駅前（空港バスおりば）", op:"東京空港交通・京成バス", q:"35.6860157,139.8821031",
+        note:"都営新宿線一之江駅前の空港連絡バスおりば（環七通り側）。"},
+      {g:"東京", name:"小岩駅", spot:"小岩駅南口 0番のりば", op:"東京空港交通・京成バス", q:"35.732749,139.881932",
+        note:"JR小岩駅南口ロータリーの0番のりばで乗降。"},
+      {g:"東京", name:"亀有駅", spot:"亀有駅南口バスターミナル", op:"東京空港交通・京成バス", q:"35.766426,139.84787",
+        note:"JR亀有駅南口のバスターミナルで乗降。"},
+      {g:"東京", name:"東陽町駅", spot:"東陽町駅前", op:"東京空港交通", q:"35.66965233,139.8158057",
+        note:"地下鉄東西線東陽町駅前。浅草・錦糸町・東陽町線。"},
+      {g:"東京", name:"ホテルイースト21東京", spot:"ホテルイースト21東京 バスのりば", op:"東京空港交通", q:"35.674493,139.815053",
+        note:"東陽町駅の北のホテル。玄関前ののりばで降車。"},
+      {g:"東京", name:"錦糸町（東武ホテルレバント東京）", spot:"東武ホテルレバント東京前", op:"東京空港交通", q:"35.69753,139.810834",
+        note:"リムジンバスの錦糸町降車場はJR錦糸町駅北側の東武ホテルレバント東京前。"},
+      {g:"東京", name:"浅草（浅草ビューホテル）", spot:"浅草ビューホテル前", op:"東京空港交通", q:"35.715389,139.792319",
+        note:"国際通り沿い・浅草ビューホテル前で降車。つくばエクスプレス浅草駅すぐ。"},
+      {g:"東京", name:"東京ビッグサイト", spot:"ビッグサイト正面エントランス前で待ち合わせ推奨", op:"東京空港交通", q:"35.630329,139.793563",
+        link:"https://www.bigsight.jp/download/pdf/busmap.pdf", linkLabel:"ビッグサイト バスのりば案内図（公式PDF）",
+        note:"バスは正面の「1F中央ターミナル」に到着。のりばが複数あるので、待ち合わせはビッグサイト正面エントランス前が確実。詳細は下の公式案内図で。"},
+      {g:"東京", name:"石神井公園駅", spot:"石神井公園駅北口", op:"東京空港交通・西武バス", q:"35.744457,139.606474",
+        note:"西武池袋線石神井公園駅の北口ロータリー。石神井公園駅・和光市駅線。"},
+      // 東京（多摩）
+      {g:"東京（多摩）", name:"中央道日野", spot:"中央道日野バス停（おりば）", op:"東京空港交通・西東京バス", q:"35.674528,139.409166",
+        note:"中央道本線上の高速バス停。駅ではないので車での送迎向き。"},
+      {g:"東京（多摩）", name:"八王子駅", spot:"JR八王子駅北口", op:"東京空港交通・西東京バス", q:"35.656703,139.339393",
+        note:"JR八王子駅北口ロータリーの空港連絡バスのりば。"},
+      {g:"東京（多摩）", name:"京王八王子駅", spot:"京王八王子駅（おりば）", op:"東京空港交通・西東京バス", q:"35.65889932,139.3425422",
+        note:"降車は駅北西側の京王八王子駅おりば（公式おりば地図の位置。乗車のりばとは別）。"},
+      {g:"東京（多摩）", name:"西八王子駅入口", spot:"西八王子駅入口バス停", op:"東京空港交通・西東京バス", q:"35.65819752,139.3131213",
+        note:"甲州街道沿いのバス停。JR西八王子駅から北へすぐ。"},
+      {g:"東京（多摩）", name:"高尾駅", spot:"高尾駅南口", op:"東京空港交通・西東京バス", q:"35.641739,139.28359",
+        note:"JR・京王高尾駅の南口ロータリー。"},
+      {g:"東京（多摩）", name:"聖蹟桜ヶ丘駅", spot:"聖蹟桜ヶ丘駅（おりば）", op:"東京空港交通・京王バス", q:"35.65022919,139.4471426",
+        note:"降車は駅南側のおりば（公式おりば地図の位置。北側の乗車のりばとは別）。"},
+      {g:"東京（多摩）", name:"京王多摩センター駅", spot:"京王多摩センター駅（おりば）", op:"東京空港交通・京王バス", q:"35.62403966,139.4240226",
+        note:"多摩センター駅前のバスターミナルで降車。"},
+      {g:"東京（多摩）", name:"南大沢駅", spot:"南大沢駅バスターミナル", op:"東京空港交通・京王バス", q:"35.6138217,139.3804346",
+        note:"京王相模原線南大沢駅前のバスターミナルで降車。"},
+      {g:"東京（多摩）", name:"調布駅", spot:"調布駅南口4番バス停", op:"東京空港交通・京王バス", q:"35.6511848,139.5437266",
+        note:"羽田空港発の便は北口降車場ではなく南口4番バス停に停車（リムジンバス公式の注記）。南口駅前広場のバス停（ユーザー確認済みピン）。"},
+      {g:"東京（多摩）", name:"稲城駅", spot:"稲城駅3番のりば", op:"東京空港交通・京王バス", q:"35.63578446,139.500477",
+        note:"京王相模原線稲城駅前のバスターミナル内3番のりばで乗降。"},
+      {g:"東京（多摩）", name:"若葉台駅", spot:"若葉台駅3番のりば", op:"東京空港交通・京王バス", q:"35.620231,139.471873",
+        note:"京王相模原線若葉台駅前のバスターミナル内3番のりばで乗降。"},
+      {g:"東京（多摩）", name:"府中駅", spot:"府中駅バスターミナル", op:"東京空港交通・京王バス", q:"35.672024,139.480029",
+        note:"府中駅南側のバスターミナル（商業施設ル・シーニュの1階部分）に到着。空港行き乗車は5番のりば。"},
+      {g:"東京（多摩）", name:"武蔵小金井駅", spot:"武蔵小金井駅南口4番のりば", op:"東京空港交通・京王バス", q:"35.700472,139.506309",
+        note:"南口バスターミナル内4番のりばで乗降（京王バス公式・ユーザー確認済み）。"},
+      {g:"東京（多摩）", name:"国分寺駅", spot:"国分寺駅南口1番のりば", op:"東京空港交通・京王バス", q:"35.699584,139.481714",
+        note:"国分寺駅南口ロータリーの1番のりばで乗降。"},
+      {g:"東京（多摩）", name:"西国分寺駅東", spot:"西国分寺駅東口交通広場2番のりば", op:"東京空港交通・京王バス", q:"35.699556,139.468077",
+        note:"西国分寺駅東側の交通広場内2番のりばで乗降。"},
+      // 東京（多摩・京急系 第5バッチ）
+      {g:"東京（多摩）", name:"立川駅（立川駅北口）", spot:"立川駅北口13番のりば", op:"京急バス・立川バス", q:"35.699233,139.413924",
+        note:"立川駅北口13番のりば（バスナビ.com公式のりば地図の位置）。"},
+      {g:"東京（多摩）", name:"国立駅", spot:"国立駅南口6番のりば", op:"京急バス・立川バス", q:"35.698293,139.446183", pend:true,
+        note:"国立駅南口6番のりば付近（駅前ロータリー・要検収）。"},
+      {g:"東京（多摩）", name:"昭島駅", spot:"昭島駅北口1番のりば", op:"京急バス・立川バス", q:"35.7140898,139.3607994", pend:true,
+        note:"昭島駅北口1番のりば付近（要検収）。"},
+      {g:"東京（多摩）", name:"町田バスセンター", spot:"町田バスセンター（空港バス・高速バス待合所／6番のりば）", op:"京急バス・神奈川中央交通", q:"35.5433591,139.4445652",
+        note:"町田バスセンターの空港バス・高速バス待合所前。6番のりば発着。待合所前で待ち合わせがわかりやすい。"},
+      {g:"東京（多摩）", name:"南町田グランベリーパーク駅", spot:"南町田グランベリーパーク駅1番のりば", op:"京急バス・神奈川中央交通", q:"35.5120117,139.4703389", pend:true,
+        note:"南町田グランベリーパーク駅前1番のりば付近（要検収）。"},
+      // 東京（城南・大田／京急系 第5バッチ）
+      {g:"東京（城南・大田）", name:"大森駅", spot:"大森駅東口3番のりば", op:"京急バス", q:"35.5884256,139.7289382",
+        note:"大森駅東口3番のりば（羽田空港線・下りバス停の実ピン位置）。京急バス単独運行。"},
+      {g:"東京（城南・大田）", name:"蒲田駅", spot:"蒲田駅東口（0番・3番・4番のりば）", op:"京急バス", q:"35.5627124,139.7167732", pend:true,
+        note:"蒲田駅東口のバスのりば。京急空港バスは0番・3番・4番のりば発着で便により異なる。到着ポールの特定は要検収。"},
+      {g:"東京（城南・大田）", name:"大井町駅", spot:"大井町駅（大井町トラックス）21番のりば", op:"京急バス・東急バス", q:"35.607374,139.734775", pend:true,
+        note:"大井町駅の大井町トラックス21番のりば。停留所移設のお知らせが出ているため位置は要検収。"},
+      {g:"東京（城南・大田）", name:"品川シーサイド駅", spot:"品川シーサイド駅前2番のりば", op:"京急バス・東急バス", q:"35.609236,139.749597",
+        note:"品川シーサイド駅前2番のりば（東急バス公式のりば地図の位置）。"},
+      {g:"東京（城南・大田）", name:"武蔵小山駅", spot:"武蔵小山駅1番のりば", op:"京急バス・東急バス", q:"35.619979,139.703616",
+        note:"武蔵小山駅1番のりば（東急バス公式のりば地図の位置）。"},
+      {g:"東京（城南・大田）", name:"大崎駅西口", spot:"大崎駅西口バスターミナル1～3番のりば", op:"京急バス・東急バス", q:"35.6180188,139.728727", pend:true,
+        note:"大崎駅西口バスターミナルの1～3番のりば。バスターミナルのMaps位置と東急のりば地図が約80m離れているため要検収。"},
+      {g:"東京（城南・大田）", name:"田園調布本町", spot:"田園調布本町バス停", op:"京急バス・東急バス", q:"35.587854,139.675106",
+        note:"田園調布本町バス停（東急バス公式のりば地図の位置）。武蔵小杉方面の途中降車。"},
+      {g:"東京（城南・大田）", name:"二子玉川駅（二子玉川ライズ）", spot:"二子玉川ライズ・楽天クリムゾンハウス前", op:"京急バス・東急バス", q:"35.610211,139.629930",
+        note:"羽田からの便は二子玉川駅ではなく「二子玉川ライズ・楽天クリムゾンハウス」前で降車（東急バス公式のりば地図の位置）。"},
+      // 東京（城東・城北／京急系 第5バッチ）
+      {g:"東京（城東・城北）", name:"錦糸町駅（スカイツリー線）", spot:"錦糸町駅", op:"京急バス・東武バス", q:"35.6965026,139.8151696", pend:true,
+        note:"錦糸町駅・東京スカイツリータウン線の錦糸町駅降車。既存の「錦糸町（レバント東京）」とは別路線。のりば位置は要検収。"},
+      {g:"東京（城東・城北）", name:"東京スカイツリータウン", spot:"東京スカイツリータウン2番のりば", op:"京急バス・東武バス", q:"35.7105891,139.8118306", pend:true,
+        note:"東京スカイツリータウンの2番のりば付近。大型施設のため到着位置は要検収。"},
+      {g:"東京（城東・城北）", name:"千住大橋駅", spot:"千住大橋駅", op:"京急バス・東武バス", q:"35.742372,139.797261", pend:true,
+        note:"千住大橋駅前。のりば位置は要検収。"},
+      {g:"東京（城東・城北）", name:"北千住駅", spot:"北千住駅西口4番のりば", op:"京急バス・東武バス", q:"35.750633,139.804101", pend:true,
+        note:"北千住駅西口4番のりば付近。位置は要検収。"},
+      {g:"東京（城東・城北）", name:"王子駅", spot:"王子駅南口", op:"京急バス・国際興業バス・東京バス", q:"35.7540312,139.7372213", pend:true,
+        note:"王子駅南口のバスのりば。位置は要検収。"},
+      {g:"東京（城東・城北）", name:"赤羽駅", spot:"赤羽駅東口9番のりば", op:"京急バス・国際興業バス・東京バス", q:"35.77887,139.721078", pend:true,
+        note:"赤羽駅東口9番のりば付近。位置は要検収。"},
+      // 埼玉
+      {g:"埼玉", name:"和光市駅", spot:"和光市駅南口", op:"東京空港交通・西武バス", q:"35.787817,139.613493",
+        note:"東武東上線・地下鉄和光市駅の南口ロータリー。"},
+      {g:"埼玉", name:"武蔵浦和駅", spot:"武蔵浦和駅西口", op:"東京空港交通・国際興業バス", q:"35.845703,139.645938",
+        note:"JR武蔵浦和駅西口ロータリーの空港連絡バスのりば。"},
+      {g:"埼玉", name:"浦和駅", spot:"浦和駅西口（おりば）", op:"東京空港交通・国際興業バス", q:"35.85825405,139.6562229",
+        note:"JR浦和駅西口ロータリーのおりば。"},
+      {g:"埼玉", name:"ロイヤルパインズホテル浦和", spot:"ロイヤルパインズホテル浦和 エントランス前", op:"東京空港交通・国際興業バス", q:"35.860769,139.652095",
+        note:"バスはホテルの車寄せ（エントランス）に入って降車。お迎えはホテル入口前で。"},
+      {g:"埼玉", name:"東所沢駅", spot:"東所沢駅前", op:"東京空港交通・西武バス", q:"35.79487659,139.5138461",
+        note:"JR武蔵野線東所沢駅前。所沢線。"},
+      {g:"埼玉", name:"ところざわサクラタウン", spot:"ところざわサクラタウン バス停", op:"東京空港交通・西武バス", q:"35.797444349534,139.50511797386",
+        note:"角川武蔵野ミュージアムのある複合施設前のバス停。"},
+      {g:"埼玉", name:"所沢駅", spot:"所沢駅東口", op:"東京空港交通・西武バス", q:"35.78674,139.474284",
+        note:"西武所沢駅の東口ロータリー。"},
+      {g:"埼玉", name:"さいたま新都心駅", spot:"けやきひろば1階 バスロータリー3番のりば", op:"東京空港交通・西武バス・国際興業バス", q:"35.893405,139.631751",
+        note:"さいたまスーパーアリーナ隣接「けやきひろば」の1階バスロータリー・3番のりば（羽田・成田・千葉方面）。駅改札から左手へ約200m、2階デッキからエスカレーターで1階へ。地図ピンは2階デッキ上に見えるが実際のバス停は1階。"},
+      {g:"埼玉", name:"大宮駅", spot:"大宮駅西口", op:"東京空港交通・西武バス・国際興業バス", q:"35.90515,139.622117",
+        note:"大宮駅西口ロータリーの空港連絡バスのりば。"},
+      // 神奈川
+      {g:"神奈川", name:"横浜駅（YCAT）", spot:"YCAT Y4おりば（横浜駅東口・スカイビル1階）", op:"京急バス", q:"35.464862,139.624477",
+        link:"https://www.ycat.co.jp/guide/floormap/", linkLabel:"YCAT 1階フロアマップ（公式）",
+        note:"横浜駅東口・スカイビル1階の屋内バスターミナル。羽田からの便はY4（羽田到着）で降車。屋内なので下の公式フロアマップで位置を確認して。"},
+      // 千葉
+      {g:"千葉", name:"東京ディズニーランド", spot:"東京ディズニーランド バスのりば", op:"東京空港交通・京急バス・京成バス", q:"35.6359,139.881217",
+        note:"TDLバスターミナル（羽田空港線ののりば）。"},
+      {g:"千葉", name:"東京ディズニーシー", spot:"TDS メインエントランス前で待ち合わせ推奨", op:"東京空港交通・京急バス・京成バス", q:"35.628711,139.88743",
+        link:"https://www.tokyodisneyresort.jp/tdr/access/bus.html", linkLabel:"TDR公式：バス降車場所の案内図",
+        note:"バスはバスターミナル・ノースまたはサウスに到着（便により異なる）。どちらからもメインエントランス（リゾートライン東京ディズニーシー・ステーション前）は徒歩すぐなので、待ち合わせはメインエントランスが確実。"},
+      // 千葉（市川・浦安）
+      {g:"千葉（市川・浦安）", name:"市川駅", spot:"市川駅南口1番のりば", op:"東京空港交通・京成バス千葉ウエスト", q:"35.728668,139.907272",
+        note:"JR市川駅南口ロータリーの1番のりばで乗降。"},
+      {g:"千葉（市川・浦安）", name:"行徳駅", spot:"行徳駅前", op:"東京空港交通・京成バス千葉ウエスト", q:"35.68370315,139.9140243",
+        note:"東西線行徳駅前で乗降（空港行きは4番のりば）。リムジンバス公式座標・ユーザー確認済み（ストリートビューでバス停確認）。"},
+      {g:"千葉（市川・浦安）", name:"妙典駅（富浜）", spot:"富浜バス停（妙典駅すぐ）", op:"東京空港交通・京成バス千葉ウエスト", q:"35.6903773,139.9248892",
+        note:"バス停名は「富浜」。東西線妙典駅南口1番のりばのそば。"},
+      {g:"千葉（市川・浦安）", name:"新浦安駅", spot:"新浦安駅北口バス停", op:"東京空港交通・京成バス千葉ウエスト", q:"35.65007578,139.91243527",
+        note:"降車は北口バス停。空港行き乗車は南口Hのりば（シンボルロード沿い）と別の場所なので注意。"},
+      {g:"千葉（市川・浦安）", name:"三井ガーデンホテルプラナ東京ベイ", spot:"三井ガーデンホテルプラナ東京ベイ前", op:"東京空港交通・京成バス千葉ウエスト", q:"35.63677457,139.92505535",
+        note:"新浦安地区のホテル。ホテル前のバス停で降車。"},
+      // 千葉（津田沼・幕張）
+      {g:"千葉（津田沼・幕張）", name:"京成津田沼駅", spot:"京成津田沼駅南口", op:"東京空港交通・京成バス", q:"35.6823602,140.0244274",
+        note:"京成津田沼駅南口側の「京成津田沼駅（バス）」停で降車（ユーザー確認済みピン）。"},
+      {g:"千葉（津田沼・幕張）", name:"JR津田沼駅", spot:"JR津田沼駅南口", op:"東京空港交通・京成バス", q:"35.690616,140.02021",
+        note:"JR津田沼駅南口で降車。空港行き乗車は南口9番のりば。"},
+      {g:"千葉（津田沼・幕張）", name:"海浜幕張駅", spot:"海浜幕張駅（北口側）", op:"京急バス・京成バス・東京空港交通", q:"35.65021862,140.0422478",
+        note:"北口側で乗降（空港行きは北口3番のりば）。リムジンバス公式座標・ユーザー確認済み。"},
+      {g:"千葉（津田沼・幕張）", name:"ホテルスプリングス幕張", spot:"ホテルスプリングス幕張前", op:"京急バス・京成バス・東京空港交通", q:"35.64908925,140.0441081",
+        note:"海浜幕張駅南側のホテル前バス停で降車。"},
+      {g:"千葉（津田沼・幕張）", name:"アパホテル＆リゾート東京ベイ幕張", spot:"アパホテル＆リゾート東京ベイ幕張前", op:"京急バス・京成バス・東京空港交通", q:"35.64451743,140.0370633",
+        note:"幕張のツインタワーホテル前のバス停で降車。"},
+      {g:"千葉（津田沼・幕張）", name:"幕張メッセ中央", spot:"幕張メッセ中央 1階バスターミナル", op:"京急バス・京成バス・東京空港交通", q:"35.64781673,140.0358601",
+        note:"幕張メッセ中央エントランス下の1階バスターミナルで乗降（空港行きは3番のりば）。デッキの下の1階なので注意。"},
+      {g:"千葉（津田沼・幕張）", name:"幕張ベイタウン", spot:"幕張ベイタウン バス停", op:"京急バス・京成バス・東京空港交通", q:"35.64463007,140.0486157",
+        note:"打瀬の住宅街・幕張ベイタウンのバス停で降車。"},
+      // 千葉（千葉市・四街道・大網）
+      {g:"千葉（千葉市・四街道・大網）", name:"検見川浜駅", spot:"検見川浜駅（北口側）", op:"京急バス・京成バス・東京空港交通", q:"35.63865666,140.0605781",
+        note:"駅北側の羽田空港線バス停で乗降。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"稲毛海岸駅", spot:"稲毛海岸駅南口0番のりば", op:"京急バス・京成バス・東京空港交通", q:"35.62876273,140.0721927",
+        note:"JR京葉線稲毛海岸駅南口の0番のりばで乗降。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"千葉中央駅", spot:"千葉中央駅西口", op:"京急バス・京成バス・東京空港交通", q:"35.60714904,140.1177671",
+        note:"京成千葉中央駅の西口側で乗降。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"稲毛駅", spot:"稲毛駅東口5番のりば", op:"京成バス千葉イースト", q:"35.637601,140.093113",
+        note:"JR稲毛駅東口の5番のりばで乗降。※この路線の東京空港交通便は運休中で京成バス千葉イーストのみ運行。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"四街道駅", spot:"四街道駅北口1番のりば", op:"京成バス千葉イースト", q:"35.663278,140.164674",
+        note:"JR四街道駅北口の1番のりばで乗降。※この路線の東京空港交通便は運休中で京成バス千葉イーストのみ運行。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"大宮台", spot:"大宮台バス停", op:"東京空港交通・京成バス千葉イースト", q:"35.585867,140.180459",
+        note:"千葉市若葉区大宮台の住宅地バス停。鎌取・大網方面路線の途中降車地。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"鎌取駅", spot:"鎌取駅北口1番のりば", op:"東京空港交通・京成バス千葉イースト", q:"35.563043,140.178654",
+        note:"JR外房線鎌取駅北口の1番のりばで乗降。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"誉田駅", spot:"誉田駅南口1番のりば", op:"東京空港交通・京成バス千葉イースト", q:"35.54686,140.21363",
+        note:"JR外房線誉田駅南口の1番のりばで乗降。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"土気駅", spot:"土気駅南口2番のりば", op:"東京空港交通・京成バス千葉イースト", q:"35.530545,140.270101",
+        note:"JR外房線土気駅南口の2番のりばで乗降。あすみが丘方面の玄関口。"},
+      {g:"千葉（千葉市・四街道・大網）", name:"大網駅", spot:"大網駅バス停", op:"東京空港交通・京成バス千葉イースト", q:"35.522722,140.311579",
+        note:"JR大網駅前のバス停で乗降。羽田からの終点。"}
+    ]
+  },
+  komaki: {
+    name: "県営名古屋空港（小牧）",
+    dests: [
+      {g:"名古屋方面", name:"名古屋駅前", spot:"ミッドランドスクエア前", op:"あおい交通", q:"35.1698987,136.8847986",
+        note:"名古屋空港直行バスの終点。約35分。ポールは市バス「ミッドランドスクエア前」シェルターの少し北、Diorショーウィンドウ前あたり。"},
+      {g:"名古屋方面", name:"栄（さかえ・降車のみ）", spot:"名古屋栄（降車専用）", op:"あおい交通", q:"35.1698517,136.9087097",
+        note:"空港発 名古屋駅前行きは途中の栄にも停車（降車のみ）。広小路通沿い・錦3丁目25、「名古屋 栄」ポール（大阪バス等と共用）。"},
+      {g:"春日井方面", name:"勝川駅（かちがわ）", spot:"勝川駅前", op:"あおい交通", q:"35.230207,136.956036",
+        note:"勝川駅－空港線。JR・城北線 勝川駅前。約20分。"},
+      {g:"春日井方面", name:"味美（あじよし）", spot:"味美（あじよし）", op:"あおい交通", q:"35.233005,136.935943",
+        note:"勝川駅－空港線が経由。名鉄小牧線 味美駅付近。"},
+      {g:"西春方面", name:"西春駅（にしはる）", spot:"西春駅（名古屋空港線のりば）", op:"名鉄バス", q:"35.2444068,136.8714668",
+        note:"名鉄バス 名古屋空港線の終点。名鉄犬山線 西春駅の駅前ロータリー。"}
+    ]
+  }
+};
+
+const airportSel = document.getElementById('airport');
+const destSel = document.getElementById('dest');
+const resultCard = document.getElementById('resultCard');
+const placeholder = document.getElementById('placeholder');
+
+// 空港プルダウン
+Object.keys(DATA).forEach(key=>{
+  const o=document.createElement('option');
+  o.value=key;o.textContent=DATA[key].name;
+  airportSel.appendChild(o);
+});
+
+airportSel.addEventListener('change',()=>{
+  const key=airportSel.value;
+  destSel.innerHTML='';
+  hideResult();
+  if(!key){
+    destSel.disabled=true;
+    destSel.innerHTML='<option value="">― まず空港を選んでください ―</option>';
+    return;
+  }
+  destSel.disabled=false;
+  const first=document.createElement('option');
+  first.value='';first.textContent='― 行き先を選ぶ ―';
+  destSel.appendChild(first);
+  // 地域ごとにグループ化
+  const groups={};
+  DATA[key].dests.forEach((d,i)=>{
+    (groups[d.g]=groups[d.g]||[]).push({...d,idx:i});
+  });
+  Object.keys(groups).forEach(g=>{
+    const og=document.createElement('optgroup');
+    og.label=g;
+    groups[g].forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.idx;
+      o.textContent=d.name+(d.susp?'（運休中）':'');
+      og.appendChild(o);
+    });
+    destSel.appendChild(og);
+  });
+});
+
+destSel.addEventListener('change',()=>{
+  const key=airportSel.value;
+  const idx=destSel.value;
+  if(key===''||idx===''){hideResult();return;}
+  showResult(DATA[key], DATA[key].dests[idx]);
+});
+
+function hideResult(){
+  resultCard.classList.remove('show');
+  placeholder.style.display='block';
+}
+
+function showResult(airport,d){
+  placeholder.style.display='none';
+  document.getElementById('routeLine').innerHTML=
+    '<span class="chip">'+airport.name+'</span><span class="arrow">→ バス →</span><span class="chip">'+d.name+'</span>';
+  document.getElementById('spotName').textContent=d.spot;
+
+  let meta='<span class="badge">🚌 '+d.op+'</span>';
+  if(d.susp) meta+='<span class="badge warn">⚠ 現在運休中</span>';
+  if(d.pend) meta+='<span class="badge warn">⏳ 位置未検収（おおよその場所です）</span>';
+  document.getElementById('metaRow').innerHTML=meta;
+
+  document.getElementById('noteBox').textContent=d.note;
+
+  const q=encodeURIComponent(d.q);
+  document.getElementById('mapBtn').href='https://www.google.com/maps/search/?api=1&query='+q;
+  const infoBtn=document.getElementById('infoBtn');
+  if(d.link){
+    infoBtn.href=d.link;
+    infoBtn.textContent='🗺 '+(d.linkLabel||'施設の案内図（公式）');
+    infoBtn.style.display='flex';
+  }else{
+    infoBtn.style.display='none';
+  }
+  document.getElementById('mapFrame').innerHTML=
+    '<iframe loading="lazy" src="https://maps.google.com/maps?q='+q+'&z=16&output=embed"></iframe>';
+
+  resultCard.classList.add('show');
+}
+</script>
+</body>
+</html>
