@@ -1,4 +1,5 @@
-// おむかえバス 停留所データ（index.html から切り出し / 案A データ駆動化 v4.25 2026-07-13）
+// おむかえバス 停留所データ ｜ v4.30 ｜ 2026-08-19 ※この版数は index.html の version 欄・VERSION.txt と常に一致させること
+// （index.html から切り出し / 案A データ駆動化 v4.25 2026-07-13）
 // この DATA を編集して停留所を追加・修正する。index.html 側は <script src="stops.js"> で読むだけ。
 
 const DATA = {

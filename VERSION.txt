@@ -1,0 +1,11 @@
+おむかえどこ？ 最新バージョン管理
+==================================
+現在の最新: v4.30（2026-08-19）
+正（マスター）: GitHub https://github.com/motatamu/omukae-doko
+対象ファイル: index.html ＋ stops.js（必ずセットで更新）
+
+ルール（迷子防止）:
+1. 編集を始める前に、必ずGitHubから最新を取得する（Code → Download ZIP でOK）
+2. 編集したら、index.htmlのversion欄・stops.js先頭ヘッダ・このVERSION.txtの3か所の版数を同じ番号に上げる
+3. 編集が終わったら、その日のうちにGitHubへアップロードする（Add file → Upload files）
+4. 手元のPC（kitamura / motatamupc）のコピーは「作業用」。どれが最新か迷ったらGitHubが正
